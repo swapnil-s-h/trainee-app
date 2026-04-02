@@ -4,7 +4,7 @@ services:
     container_name: practice-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: suraj123
+      POSTGRES_PASSWORD: abcdefgh
       POSTGRES_DB: trainee
     ports:
       - '5432:5432'

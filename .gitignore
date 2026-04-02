@@ -6,6 +6,7 @@ node_modules/
 backend/.env
 backend/Dockerfile
 backend/.dockerignore
+backend/storage
 
 # Expo
 .expo/
