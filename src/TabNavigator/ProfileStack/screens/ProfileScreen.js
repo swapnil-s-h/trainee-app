@@ -7,11 +7,14 @@ import {
   StyleSheet,
   StatusBar,
   Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CommonActions } from '@react-navigation/native';
 
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
+import { useSession } from '../../../context/SessionContext';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const RADIUS = 46;
@@ -124,6 +127,11 @@ const STATUS_BADGE = {
   PENDING: { bg: '#78350F', text: '#FCD34D' },
 };
 
+function getRootNavigator(nav) {
+  const parent = nav.getParent();
+  return parent ? getRootNavigator(parent) : nav;
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function SectionCard({ title, icon, children, headerRight }) {
@@ -180,7 +188,27 @@ const infoStyles = StyleSheet.create({
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function ProfileScreen({ navigation }) {
+  const { clearSession } = useSession();
   const strokeDashoffset = CIRC * (1 - USER.psaraReady / 100);
+
+  const handleLogout = () => {
+    Alert.alert('Log out', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Log out',
+        style: 'destructive',
+        onPress: async () => {
+          await clearSession();
+          getRootNavigator(navigation).dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: 'Landing' }],
+            })
+          );
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom', 'left', 'right']}>
@@ -224,10 +252,13 @@ export default function ProfileScreen({ navigation }) {
               <Ionicons name="refresh-outline" size={13} color="#A0AEC0" />
               <Text style={styles.actionBtnText}>Reset Password</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionBtn, styles.actionBtnBlue]}>
-              <Ionicons name="create-outline" size={13} color="#FFFFFF" />
-              <Text style={[styles.actionBtnText, styles.actionBtnTextBlue]}>
-                Edit Profile
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.actionBtnRed]}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={13} color="#FFFFFF" />
+              <Text style={[styles.actionBtnText, styles.actionBtnTextRed]}>
+                Logout
               </Text>
             </TouchableOpacity>
           </View>
@@ -492,9 +523,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#1E2A3A',
   },
-  actionBtnBlue: { backgroundColor: '#2563EB', borderColor: '#2563EB' },
+  actionBtnRed: { backgroundColor: '#FA5043', borderColor: '#FA5043' },
   actionBtnText: { fontSize: 12, fontWeight: '600', color: '#A0AEC0' },
-  actionBtnTextBlue: { color: '#FFFFFF' },
+  actionBtnTextRed: { color: '#FFFFFF' },
 
   // PSARA
   psaraRow: { alignItems: 'center' },

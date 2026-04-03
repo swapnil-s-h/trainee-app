@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,18 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CameraView } from 'expo-camera';
+import { useVisualVerification } from '../../../hooks/useVisualVerification';
+import { useSession } from '../../../context/SessionContext';
+
+/** Valid UUID v4 for optional quiz session_id on POST /verify/snapshot */
+function uuidV4() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 // ─── Sample Data ──────────────────────────────────────────────────────────────
 const QUIZ_DATA = {
@@ -70,8 +82,19 @@ const QUIZ_DATA = {
 };
 
 export default function QuizScreen({ navigation, route }) {
+  const { traineeId: sessionTraineeId } = useSession();
   const quizTitle = route?.params?.quizTitle ?? QUIZ_DATA.title;
   const questions = QUIZ_DATA.questions;
+  /** Same id as POST /register/face; route param overrides session (e.g. deep link). */
+  const traineeId = route?.params?.traineeId ?? sessionTraineeId ?? null;
+  const quizSessionId = useMemo(() => uuidV4(), []);
+
+  const { cameraRef, cameraPermission } = useVisualVerification({
+    traineeId,
+    triggerType: 'QUIZ_ATTEMPT',
+    sessionId: quizSessionId,
+    enabled: Boolean(traineeId),
+  });
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // { questionId: optionIndex }
@@ -139,6 +162,14 @@ export default function QuizScreen({ navigation, route }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#0A0F1C" />
+
+      {cameraPermission?.granted && traineeId ? (
+        <CameraView
+          ref={cameraRef}
+          style={styles.hiddenCamera}
+          facing="front"
+        />
+      ) : null}
 
       {/* ── Top bar ── */}
       <View style={styles.topBar}>
@@ -269,6 +300,16 @@ export default function QuizScreen({ navigation, route }) {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#0A0F1C' },
+
+  hiddenCamera: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
+    overflow: 'hidden',
+    left: 0,
+    top: 0,
+  },
 
   // Top bar
   topBar: {

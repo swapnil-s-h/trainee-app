@@ -1,8 +1,3 @@
-/**
- * src/api/verificationApi.js
- * Centralized API client for visual verification flows.
- */
-
 import axios from 'axios';
 import { Platform } from 'react-native';
 

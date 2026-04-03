@@ -14,12 +14,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { getApiErrorMessage, registerFace } from '../api/verificationApi';
 
-const FACE_STEPS = [
+/** One photo is captured while each instruction is on screen (before advancing). */
+const FACE_CAPTURE_STEPS = [
   { icon: 'sunny-outline', instruction: 'Look straight at the camera' },
   { icon: 'arrow-back-outline', instruction: 'Slowly turn your head left' },
   { icon: 'arrow-forward-outline', instruction: 'Slowly turn your head right' },
-  { icon: 'checkmark-circle', instruction: 'Face registration complete!' },
+  { icon: 'person-outline', instruction: 'Return to center and hold still' },
 ];
+
+const FACE_COMPLETION_STEP = {
+  icon: 'checkmark-circle',
+  instruction: 'Face registration complete!',
+};
+
+const FACE_STEPS = [...FACE_CAPTURE_STEPS, FACE_COMPLETION_STEP];
+
+const CAPTURE_STEP_MS = 2200;
 
 export default function MobileAndFaceScreen({ navigation, route }) {
   const [phone, setPhone] = useState('');
@@ -43,13 +53,12 @@ export default function MobileAndFaceScreen({ navigation, route }) {
 
   const traineeId = route?.params?.traineeId || phone;
 
-  const startFaceScan = async () => {
+  const startFaceScan = () => {
     setRegistrationError('');
     setFaceStarted(true);
     setFaceStep(0);
     setCameraReady(false);
     runScanAnimation();
-    simulateFaceSteps(0);
   };
 
   const runScanAnimation = () => {
@@ -69,74 +78,87 @@ export default function MobileAndFaceScreen({ navigation, route }) {
     ).start();
   };
 
-  const captureAndRegisterFace = async () => {
+  useEffect(() => {
+    if (!faceStarted || faceComplete || !permission?.granted || !cameraReady) {
+      return;
+    }
     if (!traineeId) {
-      throw new Error(
-        'Missing trainee identifier. Please go back and enter your Employee ID.'
-      );
-    }
-    if (!cameraRef.current) {
-      throw new Error('Camera is not ready yet. Please try again.');
-    }
-
-    const photo = await cameraRef.current.takePictureAsync({
-      quality: 0.7,
-      skipProcessing: true,
-    });
-    console.log(photo);
-
-    const response = await registerFace(traineeId, null, [{ uri: photo.uri }]);
-    console.log(response);
-    return response;
-  };
-
-  const completeFaceScan = async () => {
-    scanAnim.stopAnimation();
-    setIsRegistering(true);
-    setRegistrationError('');
-
-    try {
-      await captureAndRegisterFace();
-      setFaceComplete(true);
-      setFaceStarted(false);
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.08,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } catch (err) {
       setRegistrationError(
-        getApiErrorMessage(err, 'Face registration failed. Please try again.')
+        'Missing trainee identifier. Please go back and enter your Employee ID.'
       );
       setFaceStarted(false);
       setFaceStep(0);
-      setFaceComplete(false);
-    } finally {
-      setIsRegistering(false);
-    }
-  };
-
-  const simulateFaceSteps = step => {
-    if (step >= FACE_STEPS.length - 1) {
-      setFaceStep(FACE_STEPS.length - 1);
-      completeFaceScan();
+      scanAnim.stopAnimation();
       return;
     }
-    setTimeout(() => {
-      setFaceStep(step + 1);
-      simulateFaceSteps(step + 1);
-    }, 2200);
-  };
+
+    let active = true;
+
+    const runCaptureSequence = async () => {
+      const photos = [];
+      try {
+        for (let i = 0; i < FACE_CAPTURE_STEPS.length; i++) {
+          if (!active) return;
+          setFaceStep(i);
+          await new Promise(resolve => setTimeout(resolve, CAPTURE_STEP_MS));
+          if (!active) return;
+          if (!cameraRef.current) {
+            throw new Error('Camera is not ready yet. Please try again.');
+          }
+          const shot = await cameraRef.current.takePictureAsync({
+            quality: 0.7,
+            skipProcessing: true,
+          });
+          photos.push({ uri: shot.uri, type: 'image/jpeg' });
+        }
+
+        if (!active) return;
+        setFaceStep(FACE_STEPS.length - 1);
+        scanAnim.stopAnimation();
+        setIsRegistering(true);
+        setRegistrationError('');
+
+        await registerFace(traineeId, null, photos);
+
+        if (!active) return;
+        setFaceComplete(true);
+        setFaceStarted(false);
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.08,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
+      } catch (err) {
+        if (!active) return;
+        scanAnim.stopAnimation();
+        setRegistrationError(
+          getApiErrorMessage(err, 'Face registration failed. Please try again.')
+        );
+        setFaceStarted(false);
+        setFaceStep(0);
+        setFaceComplete(false);
+      } finally {
+        if (active) {
+          setIsRegistering(false);
+        }
+      }
+    };
+
+    runCaptureSequence();
+    return () => {
+      active = false;
+    };
+  }, [faceStarted, faceComplete, cameraReady, permission?.granted, traineeId]);
 
   const handleContinue = () => {
-    navigation.navigate('OTPVerification', { phone });
+    navigation.navigate('OTPVerification', { phone, traineeId });
   };
 
   const canContinue = phone.length >= 10 && faceComplete && !isRegistering;
@@ -483,8 +505,8 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
+    alignSelf: 'stretch',
     color: '#FFFFFF',
-    paddingHorizontal: 14,
     paddingVertical: 0,
   },
 

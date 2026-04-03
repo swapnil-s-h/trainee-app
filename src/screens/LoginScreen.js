@@ -12,13 +12,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useSession } from '../context/SessionContext';
 
 export default function LoginScreen({ navigation }) {
+  const { setTraineeId, clearSession } = useSession();
   const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
+    const id = employeeId.trim();
+    if (id) {
+      await setTraineeId(id);
+    } else {
+      await clearSession();
+    }
     navigation.replace('Main');
   };
 
@@ -233,6 +241,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 14,
+    alignSelf: 'stretch',
     color: '#FFFFFF',
     paddingVertical: 0,
   },

@@ -7,6 +7,7 @@ import RegistrationScreen from './src/screens/RegistrationScreen';
 import MobileAndFaceScreen from './src/screens/MobileAndFaceScreen';
 import OTPVerificationScreen from './src/screens/OTPVerificationScreen';
 import BottomTabs from './src/TabNavigator/BottomTabs';
+import { SessionProvider } from './src/context/SessionContext';
 
 const RootStack = createNativeStackNavigator();
 
@@ -19,44 +20,46 @@ const HEADER_THEME = {
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <RootStack.Navigator>
-        {/* ── Auth flow (no bottom tabs) ── */}
-        <RootStack.Screen
-          name="Landing"
-          component={LandingScreen}
-          options={{ headerShown: false }}
-        />
-        <RootStack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{ ...HEADER_THEME, title: 'Login' }}
-        />
+    <SessionProvider>
+      <NavigationContainer>
+        <RootStack.Navigator>
+          {/* ── Auth flow (no bottom tabs) ── */}
+          <RootStack.Screen
+            name="Landing"
+            component={LandingScreen}
+            options={{ headerShown: false }}
+          />
+          <RootStack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{ ...HEADER_THEME, title: 'Login' }}
+          />
 
-        {/* Registration: 3-step flow */}
-        <RootStack.Screen
-          name="Registration"
-          component={RegistrationScreen}
-          options={{ ...HEADER_THEME, title: 'Registration' }}
-        />
-        <RootStack.Screen
-          name="MobileAndFace"
-          component={MobileAndFaceScreen}
-          options={{ ...HEADER_THEME, title: 'Registration' }}
-        />
-        <RootStack.Screen
-          name="OTPVerification"
-          component={OTPVerificationScreen}
-          options={{ ...HEADER_THEME, title: 'Registration' }}
-        />
+          {/* Registration: 3-step flow */}
+          <RootStack.Screen
+            name="Registration"
+            component={RegistrationScreen}
+            options={{ ...HEADER_THEME, title: 'Registration' }}
+          />
+          <RootStack.Screen
+            name="MobileAndFace"
+            component={MobileAndFaceScreen}
+            options={{ ...HEADER_THEME, title: 'Registration' }}
+          />
+          <RootStack.Screen
+            name="OTPVerification"
+            component={OTPVerificationScreen}
+            options={{ ...HEADER_THEME, title: 'Registration' }}
+          />
 
-        {/* ── Main app (BottomTabs) ── */}
-        <RootStack.Screen
-          name="Main"
-          component={BottomTabs}
-          options={{ headerShown: false }}
-        />
-      </RootStack.Navigator>
-    </NavigationContainer>
+          {/* ── Main app (BottomTabs) ── */}
+          <RootStack.Screen
+            name="Main"
+            component={BottomTabs}
+            options={{ headerShown: false }}
+          />
+        </RootStack.Navigator>
+      </NavigationContainer>
+    </SessionProvider>
   );
 }

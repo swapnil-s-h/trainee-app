@@ -10,11 +10,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useSession } from '../context/SessionContext';
 
 const OTP_LENGTH = 6;
 const TIMER_SECONDS = 45;
 
 export default function OTPVerificationScreen({ navigation, route }) {
+  const { setTraineeId } = useSession();
   const phone = route?.params?.phone || '+1 (555) 000-0000';
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(''));
   const [timer, setTimer] = useState(TIMER_SECONDS);
@@ -66,8 +68,12 @@ export default function OTPVerificationScreen({ navigation, route }) {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     Keyboard.dismiss();
+    const tid = route?.params?.traineeId;
+    if (tid && String(tid).trim()) {
+      await setTraineeId(String(tid).trim());
+    }
     navigation.replace('Main');
   };
 
@@ -243,6 +249,7 @@ const styles = StyleSheet.create({
   otpBox: {
     flex: 1,
     height: 56,
+    width: 56,
     backgroundColor: '#111827',
     borderRadius: 12,
     borderWidth: 1.5,

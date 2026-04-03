@@ -32,9 +32,14 @@ import { useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { sendVerificationSnapshot } from '../api/verificationApi';
 
-// Interval bounds for random snapshot timing (in milliseconds)
-const MIN_INTERVAL_MS = 30_000; // 30 seconds
-const MAX_INTERVAL_MS = 90_000; // 90 seconds
+// Interval bounds for random snapshot timing (in milliseconds).
+// Snapshot verification is CPU-heavy (InsightFace on-device + server verification).
+// With many concurrent trainees, very small intervals (e.g. 5–10s) can overwhelm the
+// backend threadpool/CPU and cause timeouts or long queues.
+//
+// This range is intentionally conservative for expected multi-user concurrency.
+const MIN_INTERVAL_MS = 5_000; // 5 seconds
+const MAX_INTERVAL_MS = 10_000; // 10 seconds
 
 /**
  * Returns a random integer between min and max (inclusive).

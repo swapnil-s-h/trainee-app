@@ -15,6 +15,15 @@ import ProgressCard from '../components/ProgressCard';
 import PreAssessmentBanner from '../components/PreAssessmentBanner';
 import LessonAccordion from '../components/LessonAccordion';
 import LockedBanner from '../components/LockedBanner';
+import { useSession } from '../../../context/SessionContext';
+
+/**
+ * Quiz / LessonPlayer exist only on CoursesStack. Course Details is also mounted in HomeStack,
+ * where `navigate('Quiz')` has no matching route. Target the Courses tab explicitly (see React Navigation nesting).
+ */
+function navigateInCoursesStack(navigation, screen, params) {
+  navigation.navigate('CoursesTab', { screen, params });
+}
 
 // ─── Sample Data (replace with API response) ──────────────────────────────────
 
@@ -122,17 +131,20 @@ const COURSE = {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function CourseDetailsScreen({ navigation, route }) {
+  const { traineeId: sessionTraineeId } = useSession();
   // In real app: const course = route.params?.course ?? COURSE;
   const course = COURSE;
+  const resolvedTraineeId = route?.params?.traineeId ?? sessionTraineeId;
 
   const handleContentPress = item => {
     if (item.type === 'quiz') {
-      navigation.navigate('Quiz', {
+      navigateInCoursesStack(navigation, 'Quiz', {
         quizTitle: item.title,
         courseTitle: course.title,
+        traineeId: resolvedTraineeId,
       });
     } else {
-      navigation.navigate('LessonPlayer', {
+      navigateInCoursesStack(navigation, 'LessonPlayer', {
         lesson: item,
         courseTitle: course.title,
       });
@@ -140,10 +152,11 @@ export default function CourseDetailsScreen({ navigation, route }) {
   };
 
   const handlePreAssessmentPress = item => {
-    navigation.navigate('Quiz', {
+    navigateInCoursesStack(navigation, 'Quiz', {
       quizTitle: item.title,
       courseTitle: course.title,
       isPreAssessment: true,
+      traineeId: resolvedTraineeId,
     });
   };
 
