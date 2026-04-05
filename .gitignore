@@ -2,10 +2,7 @@
 
 # dependencies
 node_modules/
-.venv/
 backend/.env
-backend/Dockerfile
-backend/.dockerignore
 backend/storage
 
 # Expo
